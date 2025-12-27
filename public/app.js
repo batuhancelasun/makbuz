@@ -444,48 +444,81 @@ function displayScanResults(data) {
     document.getElementById('scanPlace').textContent = data.place || 'Not found';
     document.getElementById('scanDate').textContent = data.date || 'Not found';
     document.getElementById('scanAmount').textContent = data.amount ? formatCurrency(data.amount) : 'Not found';
-    document.getElementById('scanItems').textContent = data.items && data.items.length > 0 
-        ? data.items.join(', ') 
-        : 'Not found';
+    
+    // Display items as a list (one per item)
+    const itemsContainer = document.getElementById('scanItems');
+    if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+        itemsContainer.innerHTML = '<ul class="scan-items-list">' + 
+            data.items.map(item => `<li>${item}</li>`).join('') + 
+            '</ul>';
+    } else if (data.items && typeof data.items === 'string') {
+        // If items is a string, split it
+        const itemsArray = data.items.split(',').map(i => i.trim()).filter(i => i);
+        itemsContainer.innerHTML = '<ul class="scan-items-list">' + 
+            itemsArray.map(item => `<li>${item}</li>`).join('') + 
+            '</ul>';
+    } else {
+        itemsContainer.textContent = 'Not found';
+    }
 }
 
 function useScanData() {
     if (!scannedData) return;
 
-    // Reset form first
-    resetExpenseForm();
-
-    // Fill form with scanned data
-    document.getElementById('place').value = scannedData.place || '';
-    document.getElementById('amount').value = scannedData.amount || '';
-    
-    // Handle date - ensure it's in YYYY-MM-DD format
-    let dateValue = scannedData.date || new Date().toISOString().split('T')[0];
-    // If date is in a different format, try to parse it
-    if (dateValue && !dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        const parsedDate = new Date(dateValue);
-        if (!isNaN(parsedDate.getTime())) {
-            dateValue = parsedDate.toISOString().split('T')[0];
-        } else {
-            dateValue = new Date().toISOString().split('T')[0];
-        }
-    }
-    document.getElementById('date').value = dateValue;
-    
-    // Handle items - ensure it's an array and join with comma
-    if (scannedData.items && Array.isArray(scannedData.items)) {
-        document.getElementById('items').value = scannedData.items.join(', ');
-    } else if (scannedData.items) {
-        document.getElementById('items').value = scannedData.items;
-    } else {
-        document.getElementById('items').value = '';
-    }
-
-    // Show form view
+    // Show form view first to ensure DOM is ready
     showView('expenseFormView', 'Add Expense (from Receipt)');
     
-    // Reset scanner view
-    resetScanner();
+    // Use setTimeout to ensure the view is fully rendered before filling
+    setTimeout(() => {
+        // Reset form first
+        document.getElementById('expenseForm').reset();
+        editingExpenseId = null;
+        document.getElementById('formTitle').textContent = 'Add Expense (from Receipt)';
+
+        // Fill form with scanned data
+        const placeInput = document.getElementById('place');
+        const amountInput = document.getElementById('amount');
+        const dateInput = document.getElementById('date');
+        const itemsInput = document.getElementById('items');
+        
+        if (placeInput) placeInput.value = scannedData.place || '';
+        if (amountInput) amountInput.value = scannedData.amount || '';
+        
+        // Handle date - ensure it's in YYYY-MM-DD format
+        let dateValue = scannedData.date || new Date().toISOString().split('T')[0];
+        // If date is in a different format, try to parse it
+        if (dateValue && dateValue !== 'Not found' && !dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const parsedDate = new Date(dateValue);
+            if (!isNaN(parsedDate.getTime())) {
+                dateValue = parsedDate.toISOString().split('T')[0];
+            } else {
+                dateValue = new Date().toISOString().split('T')[0];
+            }
+        }
+        if (dateInput) dateInput.value = dateValue;
+        
+        // Handle items - ensure it's an array and join with comma
+        let itemsValue = '';
+        if (scannedData.items && Array.isArray(scannedData.items) && scannedData.items.length > 0) {
+            // Filter out any null or empty items
+            itemsValue = scannedData.items.filter(item => item && item.trim()).join(', ');
+        } else if (scannedData.items && typeof scannedData.items === 'string' && scannedData.items !== 'Not found') {
+            itemsValue = scannedData.items;
+        }
+        if (itemsInput) {
+            itemsInput.value = itemsValue;
+            // Trigger input event to ensure form validation works
+            itemsInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        
+        // Also trigger events for other fields to ensure they're recognized
+        if (placeInput) placeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (amountInput) amountInput.dispatchEvent(new Event('input', { bubbles: true }));
+        if (dateInput) dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        // Reset scanner view
+        resetScanner();
+    }, 100);
 }
 
 function resetScanner() {
