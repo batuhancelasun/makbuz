@@ -62,6 +62,24 @@ header h1 {
   font-size: 2rem;
   font-weight: 700;
   color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.logo-clickable:hover {
+  opacity: 0.8;
+}
+
+.header-icon {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
 .header-actions {
@@ -132,6 +150,11 @@ header h1 {
   border: 2px solid var(--border);
   margin-bottom: 2rem;
   box-shadow: 0 2px 8px var(--shadow);
+  max-height: 400px;
+}
+
+.chart-container canvas {
+  max-height: 300px !important;
 }
 
 /* Items Stats Container */

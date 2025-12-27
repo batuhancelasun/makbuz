@@ -88,6 +88,10 @@ function setupEventListeners() {
     document.getElementById('scanReceiptBtn').addEventListener('click', () => showView('scannerView'));
     document.getElementById('settingsBtn').addEventListener('click', () => showView('settingsView'));
     document.getElementById('cancelBtn').addEventListener('click', () => showView('dashboardView'));
+    const closeDetailBtn = document.getElementById('closeDetailBtn');
+    if (closeDetailBtn) {
+        closeDetailBtn.addEventListener('click', () => showView('dashboardView'));
+    }
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 
     // Forms
@@ -422,7 +426,8 @@ function renderChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
+            aspectRatio: 2,
             plugins: {
                 legend: {
                     position: 'bottom'
@@ -501,10 +506,10 @@ function renderItemsStats() {
         }
     });
 
-    // Sort by count and get top 10
+    // Sort by count and get top 3
     const sortedItems = Object.entries(itemCounts)
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 10);
+        .slice(0, 3);
 
     if (sortedItems.length === 0) {
         container.innerHTML = '<p class="empty-state">No items tracked yet</p>';
