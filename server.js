@@ -195,6 +195,7 @@ app.post('/api/scan-receipt', upload.single('receipt'), async (req, res) => {
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(settings.geminiApiKey);
     // Use gemini-2.0-flash-exp (experimental) - latest fast model
+    // Note: If gemini-2.5-flash-lite becomes available, update model name
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
     // Convert image to Gemini format
