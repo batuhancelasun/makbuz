@@ -100,28 +100,50 @@
                             <label for="notes">Notes</label>
                             <textarea id="notes" name="notes" rows="2"></textarea>
                         </div>
+                        
+                        <!-- Transaction Type Toggle -->
                         <div class="form-group">
-                            <label>
-                                <input type="checkbox" id="isIncome" name="isIncome">
-                                This is income (not an expense)
-                            </label>
+                            <label>Transaction Type</label>
+                            <div class="type-toggle">
+                                <button type="button" id="expenseTypeBtn" class="type-toggle-btn expense active">
+                                    <span class="type-icon">📉</span>
+                                    <span class="type-text">Expense</span>
+                                </button>
+                                <button type="button" id="incomeTypeBtn" class="type-toggle-btn income">
+                                    <span class="type-icon">📈</span>
+                                    <span class="type-text">Income</span>
+                                </button>
+                            </div>
+                            <input type="hidden" id="isIncome" name="isIncome" value="false">
                         </div>
+                        
+                        <!-- Recurring Toggle -->
                         <div class="form-group">
-                            <label>
-                                <input type="checkbox" id="isRecurring" name="isRecurring">
-                                Recurring transaction
-                            </label>
+                            <div class="recurring-toggle">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="isRecurring" name="isRecurring">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="recurring-label">🔄 Recurring transaction</span>
+                            </div>
                         </div>
-                        <div class="form-group" id="recurringOptions" style="display: none;">
-                            <label for="recurringFrequency">Frequency</label>
-                            <select id="recurringFrequency" name="recurringFrequency">
-                                <option value="daily">Daily</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                                <option value="yearly">Yearly</option>
-                            </select>
-                            <label for="recurringEndDate" style="margin-top: 1rem; display: block;">End Date (optional)</label>
-                            <input type="date" id="recurringEndDate" name="recurringEndDate">
+                        
+                        <div class="form-group recurring-options" id="recurringOptions">
+                            <div class="recurring-grid">
+                                <div>
+                                    <label for="recurringFrequency">Frequency</label>
+                                    <select id="recurringFrequency" name="recurringFrequency">
+                                        <option value="daily">Daily</option>
+                                        <option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="recurringEndDate">End Date (optional)</label>
+                                    <input type="date" id="recurringEndDate" name="recurringEndDate">
+                                </div>
+                            </div>
                         </div>
                         <div class="form-actions">
                             <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>

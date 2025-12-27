@@ -124,7 +124,11 @@ function setupEventListeners() {
     document.getElementById('isRecurring')?.addEventListener('change', (e) => {
         const recurringOptions = document.getElementById('recurringOptions');
         if (recurringOptions) {
-            recurringOptions.style.display = e.target.checked ? 'block' : 'none';
+            if (e.target.checked) {
+                recurringOptions.classList.add('visible');
+            } else {
+                recurringOptions.classList.remove('visible');
+            }
         }
     });
 
@@ -245,6 +249,10 @@ function resetExpenseForm() {
     if (expenseTypeBtn) expenseTypeBtn.classList.add('active');
     if (incomeTypeBtn) incomeTypeBtn.classList.remove('active');
     if (isIncomeInput) isIncomeInput.value = 'false';
+    
+    // Reset recurring options
+    const recurringOptions = document.getElementById('recurringOptions');
+    if (recurringOptions) recurringOptions.classList.remove('visible');
 }
 
 function handleExpenseSubmit(e) {
@@ -369,7 +377,11 @@ function editExpense(id) {
     if (isRecurringCheckbox) {
         isRecurringCheckbox.checked = expense.isRecurring || false;
         if (recurringOptions) {
-            recurringOptions.style.display = expense.isRecurring ? 'block' : 'none';
+            if (expense.isRecurring) {
+                recurringOptions.classList.add('visible');
+            } else {
+                recurringOptions.classList.remove('visible');
+            }
         }
     }
     if (expense.recurringFrequency) {
