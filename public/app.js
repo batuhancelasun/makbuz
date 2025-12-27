@@ -101,6 +101,25 @@ function setupEventListeners() {
     // Items input handling
     setupItemsInput();
     
+    // Transaction type buttons
+    const expenseTypeBtn = document.getElementById('expenseTypeBtn');
+    const incomeTypeBtn = document.getElementById('incomeTypeBtn');
+    const isIncomeInput = document.getElementById('isIncome');
+    
+    if (expenseTypeBtn && incomeTypeBtn && isIncomeInput) {
+        expenseTypeBtn.addEventListener('click', () => {
+            expenseTypeBtn.classList.add('active');
+            incomeTypeBtn.classList.remove('active');
+            isIncomeInput.value = 'false';
+        });
+        
+        incomeTypeBtn.addEventListener('click', () => {
+            incomeTypeBtn.classList.add('active');
+            expenseTypeBtn.classList.remove('active');
+            isIncomeInput.value = 'true';
+        });
+    }
+    
     // Recurring expense toggle
     document.getElementById('isRecurring')?.addEventListener('change', (e) => {
         const recurringOptions = document.getElementById('recurringOptions');
@@ -321,10 +340,19 @@ function editExpense(id) {
     updateItemsDisplay();
     document.getElementById('notes').value = expense.notes || '';
     
-    // Handle income checkbox
-    const isIncomeCheckbox = document.getElementById('isIncome');
-    if (isIncomeCheckbox) {
-        isIncomeCheckbox.checked = expense.isIncome || false;
+    // Handle income/expense type buttons
+    const expenseTypeBtn = document.getElementById('expenseTypeBtn');
+    const incomeTypeBtn = document.getElementById('incomeTypeBtn');
+    const isIncomeInput = document.getElementById('isIncome');
+    
+    if (expense.isIncome) {
+        if (incomeTypeBtn) incomeTypeBtn.classList.add('active');
+        if (expenseTypeBtn) expenseTypeBtn.classList.remove('active');
+        if (isIncomeInput) isIncomeInput.value = 'true';
+    } else {
+        if (expenseTypeBtn) expenseTypeBtn.classList.add('active');
+        if (incomeTypeBtn) incomeTypeBtn.classList.remove('active');
+        if (isIncomeInput) isIncomeInput.value = 'false';
     }
     
     // Handle recurring checkbox and options
