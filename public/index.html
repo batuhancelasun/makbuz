@@ -40,13 +40,15 @@
                     </div>
                 </div>
 
-                <div class="chart-container">
-                    <canvas id="expenseChart"></canvas>
-                </div>
+                <div class="dashboard-grid">
+                    <div class="chart-container">
+                        <canvas id="expenseChart"></canvas>
+                    </div>
 
-                <div class="items-stats-container">
-                    <h2>Most Bought Items</h2>
-                    <div id="itemsStats"></div>
+                    <div class="items-stats-container">
+                        <h2>Most Bought Items</h2>
+                        <div id="itemsStats"></div>
+                    </div>
                 </div>
 
                 <div class="actions">
@@ -97,6 +99,29 @@
                         <div class="form-group">
                             <label for="notes">Notes</label>
                             <textarea id="notes" name="notes" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="isIncome" name="isIncome">
+                                This is income (not an expense)
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="isRecurring" name="isRecurring">
+                                Recurring transaction
+                            </label>
+                        </div>
+                        <div class="form-group" id="recurringOptions" style="display: none;">
+                            <label for="recurringFrequency">Frequency</label>
+                            <select id="recurringFrequency" name="recurringFrequency">
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                                <option value="yearly">Yearly</option>
+                            </select>
+                            <label for="recurringEndDate" style="margin-top: 1rem; display: block;">End Date (optional)</label>
+                            <input type="date" id="recurringEndDate" name="recurringEndDate">
                         </div>
                         <div class="form-actions">
                             <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>

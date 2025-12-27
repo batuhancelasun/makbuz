@@ -77,9 +77,14 @@ header h1 {
 }
 
 .header-icon {
-  width: 32px;
-  height: 32px;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+[data-theme="dark"] .header-icon {
+  filter: drop-shadow(0 2px 4px rgba(255, 255, 255, 0.3)) brightness(1.2);
 }
 
 .header-actions {
@@ -142,13 +147,26 @@ header h1 {
   color: var(--primary);
 }
 
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Chart Container */
 .chart-container {
   background: var(--surface);
   padding: 1.5rem;
   border-radius: 12px;
   border: 2px solid var(--border);
-  margin-bottom: 2rem;
   box-shadow: 0 2px 8px var(--shadow);
   max-height: 400px;
 }
@@ -294,6 +312,10 @@ header h1 {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--primary);
+}
+
+.income-amount {
+  color: var(--success);
 }
 
 .expense-actions {

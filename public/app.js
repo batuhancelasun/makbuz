@@ -320,6 +320,29 @@ function editExpense(id) {
     currentItems = expense.items && Array.isArray(expense.items) ? [...expense.items] : [];
     updateItemsDisplay();
     document.getElementById('notes').value = expense.notes || '';
+    
+    // Handle income checkbox
+    const isIncomeCheckbox = document.getElementById('isIncome');
+    if (isIncomeCheckbox) {
+        isIncomeCheckbox.checked = expense.isIncome || false;
+    }
+    
+    // Handle recurring checkbox and options
+    const isRecurringCheckbox = document.getElementById('isRecurring');
+    const recurringOptions = document.getElementById('recurringOptions');
+    if (isRecurringCheckbox) {
+        isRecurringCheckbox.checked = expense.isRecurring || false;
+        if (recurringOptions) {
+            recurringOptions.style.display = expense.isRecurring ? 'block' : 'none';
+        }
+    }
+    if (expense.recurringFrequency) {
+        document.getElementById('recurringFrequency').value = expense.recurringFrequency;
+    }
+    if (expense.recurringEndDate) {
+        document.getElementById('recurringEndDate').value = expense.recurringEndDate;
+    }
+    
     document.getElementById('formTitle').textContent = 'Edit Expense';
     showView('expenseFormView');
 }
@@ -368,23 +391,40 @@ function updateStats() {
     const monthEnd = new Date(monthStart);
     monthEnd.setMonth(monthEnd.getMonth() + 1);
 
-    const todayTotal = expenses
-        .filter(e => e.date === today)
+    // Separate expenses and income
+    const todayExpenses = expenses
+        .filter(e => e.date === today && !e.isIncome)
         .reduce((sum, e) => sum + (e.amount || 0), 0);
+    const todayIncome = expenses
+        .filter(e => e.date === today && e.isIncome)
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
+    const todayTotal = todayExpenses - todayIncome;
 
-    const monthTotal = expenses
+    const monthExpenses = expenses
         .filter(e => {
             const expenseDate = new Date(e.date);
-            return expenseDate >= monthStart && expenseDate < monthEnd;
+            return expenseDate >= monthStart && expenseDate < monthEnd && !e.isIncome;
         })
         .reduce((sum, e) => sum + (e.amount || 0), 0);
+    const monthIncome = expenses
+        .filter(e => {
+            const expenseDate = new Date(e.date);
+            return expenseDate >= monthStart && expenseDate < monthEnd && e.isIncome;
+        })
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
+    const monthTotal = monthExpenses - monthIncome;
 
     const totalExpenses = expenses
+        .filter(e => !e.isIncome)
         .reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalIncome = expenses
+        .filter(e => e.isIncome)
+        .reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netTotal = totalExpenses - totalIncome;
 
-    document.getElementById('todayTotal').textContent = formatCurrency(todayTotal, currency);
-    document.getElementById('monthTotal').textContent = formatCurrency(monthTotal, currency);
-    document.getElementById('totalExpenses').textContent = formatCurrency(totalExpenses, currency);
+    document.getElementById('todayTotal').textContent = formatCurrency(Math.abs(todayTotal), currency);
+    document.getElementById('monthTotal').textContent = formatCurrency(Math.abs(monthTotal), currency);
+    document.getElementById('totalExpenses').textContent = formatCurrency(Math.abs(netTotal), currency);
 }
 
 // Chart rendering
@@ -397,11 +437,13 @@ function renderChart() {
         chart.destroy();
     }
 
-    // Group expenses by category
+    // Group expenses by category (only expenses, not income)
     const categoryTotals = {};
     expenses.forEach(expense => {
-        const cat = expense.category || 'Uncategorized';
-        categoryTotals[cat] = (categoryTotals[cat] || 0) + (expense.amount || 0);
+        if (!expense.isIncome) {
+            const cat = expense.category || 'Uncategorized';
+            categoryTotals[cat] = (categoryTotals[cat] || 0) + (expense.amount || 0);
+        }
     });
 
     const labels = Object.keys(categoryTotals);
