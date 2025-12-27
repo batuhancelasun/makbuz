@@ -24,8 +24,28 @@
             </div>
         </header>
 
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="dashboard">
+                <span class="tab-icon">📊</span>
+                <span class="tab-label">Dashboard</span>
+            </button>
+            <button class="tab-btn" data-tab="receipts">
+                <span class="tab-icon">🧾</span>
+                <span class="tab-label">Receipts</span>
+            </button>
+            <button class="tab-btn" data-tab="items">
+                <span class="tab-icon">🛒</span>
+                <span class="tab-label">Items</span>
+            </button>
+            <button class="tab-btn" data-tab="recurring">
+                <span class="tab-icon">🔄</span>
+                <span class="tab-label">Recurring</span>
+            </button>
+        </nav>
+
         <main>
-            <!-- Dashboard View -->
+            <!-- Dashboard Tab -->
             <section id="dashboardView" class="view active">
                 <div class="stats-grid">
                     <div class="stat-card">
@@ -48,7 +68,7 @@
                     </div>
 
                     <div class="items-stats-container">
-                        <h2>Most Bought Items</h2>
+                        <h2>Top Items</h2>
                         <div id="itemsStats"></div>
                     </div>
                 </div>
@@ -63,9 +83,58 @@
                 </div>
 
                 <div class="recent-expenses">
-                    <h2>Recent Expenses</h2>
+                    <h2>Recent Transactions</h2>
                     <div id="expensesList"></div>
                 </div>
+            </section>
+
+            <!-- Receipts Tab -->
+            <section id="receiptsView" class="view">
+                <div class="tab-header">
+                    <h2>All Receipts</h2>
+                    <div class="tab-actions">
+                        <button id="addExpenseBtn2" class="btn btn-primary btn-sm">
+                            <span>➕</span> Add
+                        </button>
+                        <button id="scanReceiptBtn2" class="btn btn-secondary btn-sm">
+                            <span>📷</span> Scan
+                        </button>
+                    </div>
+                </div>
+                <div class="filter-bar">
+                    <select id="filterCategory" class="filter-select">
+                        <option value="">All Categories</option>
+                    </select>
+                    <select id="filterType" class="filter-select">
+                        <option value="">All Types</option>
+                        <option value="expense">Expenses Only</option>
+                        <option value="income">Income Only</option>
+                    </select>
+                    <input type="month" id="filterMonth" class="filter-input">
+                </div>
+                <div id="allExpensesList" class="expenses-list"></div>
+            </section>
+
+            <!-- Items Tab -->
+            <section id="itemsView" class="view">
+                <div class="tab-header">
+                    <h2>All Items</h2>
+                </div>
+                <div class="search-bar">
+                    <input type="text" id="itemSearch" placeholder="Search items..." class="search-input">
+                </div>
+                <div id="allItemsList" class="items-grid"></div>
+            </section>
+
+            <!-- Recurring Tab -->
+            <section id="recurringView" class="view">
+                <div class="tab-header">
+                    <h2>Recurring Transactions</h2>
+                    <button id="addRecurringBtn" class="btn btn-primary btn-sm">
+                        <span>➕</span> Add Recurring
+                    </button>
+                </div>
+                <div id="recurringList" class="recurring-list"></div>
             </section>
 
             <!-- Add/Edit Expense Form -->

@@ -3,6 +3,7 @@ let expenses = [];
 let categories = [];
 let settings = {};
 let currentView = 'dashboardView';
+let currentTab = 'dashboard';
 let editingExpenseId = null;
 let chart = null;
 
@@ -15,11 +16,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCategories();
     await loadExpenses();
     setupEventListeners();
+    setupTabNavigation();
     applyTheme();
     updateStats();
     renderExpenses();
     renderChart();
     renderItemsStats();
+    populateFilterCategory();
 });
 
 // Load data from API
@@ -81,18 +84,77 @@ function applyTheme() {
     document.documentElement.setAttribute('data-theme', themeValue);
 }
 
+// Tab Navigation
+function setupTabNavigation() {
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.dataset.tab;
+            switchTab(tab);
+        });
+    });
+}
+
+function switchTab(tab) {
+    currentTab = tab;
+    
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    
+    // Hide all tab views and show the selected one
+    const tabViews = {
+        'dashboard': 'dashboardView',
+        'receipts': 'receiptsView',
+        'items': 'itemsView',
+        'recurring': 'recurringView'
+    };
+    
+    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+    const viewId = tabViews[tab];
+    if (viewId) {
+        document.getElementById(viewId).classList.add('active');
+        currentView = viewId;
+    }
+    
+    // Render content for the selected tab
+    if (tab === 'receipts') {
+        renderAllExpenses();
+    } else if (tab === 'items') {
+        renderAllItems();
+    } else if (tab === 'recurring') {
+        renderRecurring();
+    }
+}
+
 // Event listeners
 function setupEventListeners() {
     // Navigation
     document.getElementById('addExpenseBtn').addEventListener('click', () => showView('expenseFormView', 'Add Expense'));
     document.getElementById('scanReceiptBtn').addEventListener('click', () => showView('scannerView'));
     document.getElementById('settingsBtn').addEventListener('click', () => showView('settingsView'));
-    document.getElementById('cancelBtn').addEventListener('click', () => showView('dashboardView'));
+    document.getElementById('cancelBtn').addEventListener('click', () => switchTab(currentTab));
     const closeDetailBtn = document.getElementById('closeDetailBtn');
     if (closeDetailBtn) {
-        closeDetailBtn.addEventListener('click', () => showView('dashboardView'));
+        closeDetailBtn.addEventListener('click', () => switchTab(currentTab));
     }
     document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+    
+    // Additional buttons in other tabs
+    document.getElementById('addExpenseBtn2')?.addEventListener('click', () => showView('expenseFormView', 'Add Expense'));
+    document.getElementById('scanReceiptBtn2')?.addEventListener('click', () => showView('scannerView'));
+    document.getElementById('addRecurringBtn')?.addEventListener('click', () => {
+        showView('expenseFormView', 'Add Recurring Transaction');
+        document.getElementById('isRecurring').checked = true;
+        document.getElementById('recurringOptions').classList.add('visible');
+    });
+    
+    // Filters
+    document.getElementById('filterCategory')?.addEventListener('change', renderAllExpenses);
+    document.getElementById('filterType')?.addEventListener('change', renderAllExpenses);
+    document.getElementById('filterMonth')?.addEventListener('change', renderAllExpenses);
+    document.getElementById('itemSearch')?.addEventListener('input', renderAllItems);
 
     // Forms
     document.getElementById('expenseForm').addEventListener('submit', handleExpenseSubmit);
@@ -613,6 +675,191 @@ function renderItemsStats() {
         <div class="item-stat clickable" onclick="showItemDetail('${item}')">
             <span class="item-name">${item.charAt(0).toUpperCase() + item.slice(1)}</span>
             <span class="item-count">${count}x</span>
+        </div>
+    `).join('');
+}
+
+// Populate filter category dropdown
+function populateFilterCategory() {
+    const select = document.getElementById('filterCategory');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">All Categories</option>';
+    categories.forEach(cat => {
+        const option = document.createElement('option');
+        option.value = cat;
+        option.textContent = cat;
+        select.appendChild(option);
+    });
+}
+
+// Render all expenses for Receipts tab
+function renderAllExpenses() {
+    const container = document.getElementById('allExpensesList');
+    if (!container) return;
+    
+    // Get filter values
+    const categoryFilter = document.getElementById('filterCategory')?.value || '';
+    const typeFilter = document.getElementById('filterType')?.value || '';
+    const monthFilter = document.getElementById('filterMonth')?.value || '';
+    
+    // Filter expenses
+    let filtered = [...expenses];
+    
+    if (categoryFilter) {
+        filtered = filtered.filter(e => e.category === categoryFilter);
+    }
+    
+    if (typeFilter === 'expense') {
+        filtered = filtered.filter(e => !e.isIncome);
+    } else if (typeFilter === 'income') {
+        filtered = filtered.filter(e => e.isIncome);
+    }
+    
+    if (monthFilter) {
+        const [year, month] = monthFilter.split('-');
+        filtered = filtered.filter(e => {
+            const d = new Date(e.date);
+            return d.getFullYear() === parseInt(year) && (d.getMonth() + 1) === parseInt(month);
+        });
+    }
+    
+    // Sort by date descending
+    filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No receipts found</p></div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(expense => `
+        <div class="expense-item clickable" onclick="showExpenseDetail('${expense.id}')">
+            <div class="expense-info">
+                <div class="expense-place">
+                    ${expense.isIncome ? '💰 ' : '🧾 '}${expense.place || 'Unknown'}
+                    ${expense.isRecurring ? ' 🔄' : ''}
+                </div>
+                <div class="expense-details">
+                    ${expense.category} • ${formatDate(expense.date)}${expense.items && expense.items.length > 0 ? ' • ' + expense.items.length + ' items' : ''}
+                </div>
+            </div>
+            <div class="expense-amount ${expense.isIncome ? 'income-amount' : ''}">${expense.isIncome ? '+' : ''}${formatCurrency(expense.amount)}</div>
+            <div class="expense-actions" onclick="event.stopPropagation()">
+                <button class="btn-icon" onclick="editExpense('${expense.id}')" title="Edit">✏️</button>
+                <button class="btn-icon" onclick="deleteExpense('${expense.id}')" title="Delete">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Render all items for Items tab
+function renderAllItems() {
+    const container = document.getElementById('allItemsList');
+    if (!container) return;
+    
+    const searchQuery = document.getElementById('itemSearch')?.value?.toLowerCase() || '';
+    
+    // Count all items across all expenses
+    const itemData = {};
+    expenses.forEach(expense => {
+        if (expense.items && Array.isArray(expense.items)) {
+            expense.items.forEach(item => {
+                const itemName = item.trim().toLowerCase();
+                if (itemName) {
+                    if (!itemData[itemName]) {
+                        itemData[itemName] = { count: 0, totalSpent: 0, lastDate: null };
+                    }
+                    itemData[itemName].count++;
+                    itemData[itemName].totalSpent += expense.amount || 0;
+                    const expenseDate = new Date(expense.date);
+                    if (!itemData[itemName].lastDate || expenseDate > new Date(itemData[itemName].lastDate)) {
+                        itemData[itemName].lastDate = expense.date;
+                    }
+                }
+            });
+        }
+    });
+    
+    // Convert to array and filter by search
+    let items = Object.entries(itemData)
+        .map(([name, data]) => ({ name, ...data }))
+        .filter(item => item.name.includes(searchQuery))
+        .sort((a, b) => b.count - a.count);
+    
+    if (items.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛒</div><p>No items found</p></div>';
+        return;
+    }
+    
+    container.innerHTML = items.map(item => `
+        <div class="item-card" onclick="showItemDetail('${item.name}')">
+            <div class="item-card-header">
+                <span class="item-card-name">${item.name.charAt(0).toUpperCase() + item.name.slice(1)}</span>
+                <span class="item-card-count">${item.count}x</span>
+            </div>
+            <div class="item-card-stats">
+                <span>💰 ${formatCurrency(item.totalSpent)}</span>
+                <span>📅 ${formatDate(item.lastDate)}</span>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Render recurring transactions
+function renderRecurring() {
+    const container = document.getElementById('recurringList');
+    if (!container) return;
+    
+    // Find unique recurring patterns (group by place + category + amount)
+    const recurringMap = new Map();
+    
+    expenses.filter(e => e.isRecurring).forEach(expense => {
+        const key = `${expense.place}-${expense.category}-${expense.amount}-${expense.recurringFrequency}`;
+        if (!recurringMap.has(key)) {
+            recurringMap.set(key, {
+                place: expense.place,
+                category: expense.category,
+                amount: expense.amount,
+                frequency: expense.recurringFrequency,
+                isIncome: expense.isIncome,
+                count: 0,
+                nextDate: null
+            });
+        }
+        const item = recurringMap.get(key);
+        item.count++;
+        const expenseDate = new Date(expense.date);
+        if (!item.nextDate || expenseDate > new Date(item.nextDate)) {
+            item.nextDate = expense.date;
+        }
+    });
+    
+    const recurring = Array.from(recurringMap.values());
+    
+    if (recurring.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔄</div><p>No recurring transactions</p></div>';
+        return;
+    }
+    
+    const frequencyLabels = {
+        daily: 'Daily',
+        weekly: 'Weekly',
+        monthly: 'Monthly',
+        yearly: 'Yearly'
+    };
+    
+    container.innerHTML = recurring.map(item => `
+        <div class="recurring-item">
+            <div class="recurring-info">
+                <div class="recurring-place">
+                    ${item.isIncome ? '💰' : '💸'} ${item.place || 'Unknown'}
+                </div>
+                <div class="recurring-details">
+                    ${item.category} • ${item.count} transactions
+                </div>
+            </div>
+            <span class="recurring-frequency">🔄 ${frequencyLabels[item.frequency] || item.frequency}</span>
+            <div class="recurring-amount ${item.isIncome ? 'income-amount' : ''}">${item.isIncome ? '+' : ''}${formatCurrency(item.amount)}</div>
         </div>
     `).join('');
 }
