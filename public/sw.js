@@ -1,4 +1,4 @@
-const CACHE_NAME = 'makbuz-v2';
+const CACHE_NAME = 'makbuz-v3';
 const urlsToCache = [
   '/',
   '/index.html',
