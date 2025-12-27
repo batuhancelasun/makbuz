@@ -246,8 +246,17 @@ async function createExpense(expense) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(expense)
         });
-        const newExpense = await response.json();
-        expenses.push(newExpense);
+        const result = await response.json();
+        
+        // Handle recurring expenses (returns object with created count and expenses array)
+        if (result.created && result.expenses) {
+            expenses.push(...result.expenses);
+            alert(`Created ${result.created} recurring expense${result.created > 1 ? 's' : ''}`);
+        } else {
+            // Single expense
+            expenses.push(result);
+        }
+        
         updateStats();
         renderExpenses();
         renderChart();
