@@ -237,6 +237,14 @@ function resetExpenseForm() {
     document.getElementById('formTitle').textContent = 'Add Expense';
     currentItems = [];
     updateItemsDisplay();
+    
+    // Reset transaction type to expense
+    const expenseTypeBtn = document.getElementById('expenseTypeBtn');
+    const incomeTypeBtn = document.getElementById('incomeTypeBtn');
+    const isIncomeInput = document.getElementById('isIncome');
+    if (expenseTypeBtn) expenseTypeBtn.classList.add('active');
+    if (incomeTypeBtn) incomeTypeBtn.classList.remove('active');
+    if (isIncomeInput) isIncomeInput.value = 'false';
 }
 
 function handleExpenseSubmit(e) {
