@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateStats();
     renderExpenses();
     renderChart();
+    renderItemsStats();
 });
 
 // Load data from API
@@ -187,6 +188,7 @@ async function createExpense(expense) {
         updateStats();
         renderExpenses();
         renderChart();
+        renderItemsStats();
         showView('dashboardView');
     } catch (error) {
         alert('Error creating expense: ' + error.message);
@@ -208,6 +210,7 @@ async function updateExpense(id, expense) {
         updateStats();
         renderExpenses();
         renderChart();
+        renderItemsStats();
         showView('dashboardView');
     } catch (error) {
         alert('Error updating expense: ' + error.message);
@@ -223,6 +226,7 @@ async function deleteExpense(id) {
         updateStats();
         renderExpenses();
         renderChart();
+        renderItemsStats();
     } catch (error) {
         alert('Error deleting expense: ' + error.message);
     }
@@ -355,6 +359,42 @@ function renderChart() {
     });
 }
 
+// Render items statistics
+function renderItemsStats() {
+    const container = document.getElementById('itemsStats');
+    if (!container) return;
+
+    // Count all items across all expenses
+    const itemCounts = {};
+    expenses.forEach(expense => {
+        if (expense.items && Array.isArray(expense.items)) {
+            expense.items.forEach(item => {
+                const itemName = item.trim().toLowerCase();
+                if (itemName) {
+                    itemCounts[itemName] = (itemCounts[itemName] || 0) + 1;
+                }
+            });
+        }
+    });
+
+    // Sort by count and get top 10
+    const sortedItems = Object.entries(itemCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+
+    if (sortedItems.length === 0) {
+        container.innerHTML = '<p class="empty-state">No items tracked yet</p>';
+        return;
+    }
+
+    container.innerHTML = sortedItems.map(([item, count]) => `
+        <div class="item-stat">
+            <span class="item-name">${item.charAt(0).toUpperCase() + item.slice(1)}</span>
+            <span class="item-count">${count}x</span>
+        </div>
+    `).join('');
+}
+
 // Receipt scanning
 let scannedData = null;
 
@@ -412,14 +452,40 @@ function displayScanResults(data) {
 function useScanData() {
     if (!scannedData) return;
 
+    // Reset form first
+    resetExpenseForm();
+
     // Fill form with scanned data
     document.getElementById('place').value = scannedData.place || '';
     document.getElementById('amount').value = scannedData.amount || '';
-    document.getElementById('date').value = scannedData.date || new Date().toISOString().split('T')[0];
-    document.getElementById('items').value = scannedData.items ? scannedData.items.join(', ') : '';
+    
+    // Handle date - ensure it's in YYYY-MM-DD format
+    let dateValue = scannedData.date || new Date().toISOString().split('T')[0];
+    // If date is in a different format, try to parse it
+    if (dateValue && !dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const parsedDate = new Date(dateValue);
+        if (!isNaN(parsedDate.getTime())) {
+            dateValue = parsedDate.toISOString().split('T')[0];
+        } else {
+            dateValue = new Date().toISOString().split('T')[0];
+        }
+    }
+    document.getElementById('date').value = dateValue;
+    
+    // Handle items - ensure it's an array and join with comma
+    if (scannedData.items && Array.isArray(scannedData.items)) {
+        document.getElementById('items').value = scannedData.items.join(', ');
+    } else if (scannedData.items) {
+        document.getElementById('items').value = scannedData.items;
+    } else {
+        document.getElementById('items').value = '';
+    }
 
     // Show form view
     showView('expenseFormView', 'Add Expense (from Receipt)');
+    
+    // Reset scanner view
+    resetScanner();
 }
 
 function resetScanner() {

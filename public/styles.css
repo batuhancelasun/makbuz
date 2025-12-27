@@ -134,6 +134,50 @@ header h1 {
   box-shadow: 0 2px 8px var(--shadow);
 }
 
+/* Items Stats Container */
+.items-stats-container {
+  background: var(--surface);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.items-stats-container h2 {
+  margin-bottom: 1rem;
+  color: var(--text);
+  font-size: 1.25rem;
+}
+
+#itemsStats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.item-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: var(--background);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.item-name {
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+}
+
+.item-count {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+
 /* Actions */
 .actions {
   display: flex;
