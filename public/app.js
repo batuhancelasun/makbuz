@@ -481,8 +481,14 @@ function useScanData() {
         const dateInput = document.getElementById('date');
         const itemsInput = document.getElementById('items');
         
-        if (placeInput) placeInput.value = scannedData.place || '';
-        if (amountInput) amountInput.value = scannedData.amount || '';
+        if (placeInput) {
+            placeInput.value = scannedData.place && scannedData.place !== 'Not found' ? scannedData.place : '';
+            placeInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (amountInput) {
+            amountInput.value = scannedData.amount && scannedData.amount !== 'Not found' ? scannedData.amount : '';
+            amountInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
         
         // Handle date - ensure it's in YYYY-MM-DD format
         let dateValue = scannedData.date || new Date().toISOString().split('T')[0];
@@ -495,7 +501,10 @@ function useScanData() {
                 dateValue = new Date().toISOString().split('T')[0];
             }
         }
-        if (dateInput) dateInput.value = dateValue;
+        if (dateInput) {
+            dateInput.value = dateValue;
+            dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
         
         // Handle items - ensure it's an array and join with comma
         let itemsValue = '';
