@@ -4,7 +4,7 @@ services:
   makbuz:
     # Use pre-built image from Docker Hub by default
     # To build from source locally, comment out the image line and uncomment the build line below
-    image: ${DOCKERHUB_USERNAME:-batubaba619}/makbuz-expense-tracker:latest
+    image: batubaba619/makbuz-expense-tracker:latest
     # build: .
     container_name: makbuz-expense-tracker
     restart: unless-stopped
