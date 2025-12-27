@@ -448,6 +448,7 @@ async function handleSettingsSubmit(e) {
     applyTheme();
     updateStats();
     alert('Settings saved!');
+    showView('dashboardView');
 }
 
 async function saveSettings() {
