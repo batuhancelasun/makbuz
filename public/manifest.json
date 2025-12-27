@@ -11,22 +11,16 @@
   "id": "/",
   "icons": [
     {
-      "src": "/icon-dark.png",
-      "sizes": "192x192",
+      "src": "/icon-pwa.png",
+      "sizes": "500x500",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-dark.png",
-      "sizes": "192x192",
+      "src": "/icon-pwa.png",
+      "sizes": "500x500",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/icon-dark.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
     }
   ]
 }

@@ -138,8 +138,8 @@ function switchTab(tab) {
 // Event listeners
 function setupEventListeners() {
     // Navigation
-    document.getElementById('addExpenseBtn').addEventListener('click', () => showView('expenseFormView', 'Add Expense'));
-    document.getElementById('scanReceiptBtn').addEventListener('click', () => showView('scannerView'));
+    document.getElementById('addExpenseBtn')?.addEventListener('click', () => showView('expenseFormView', 'Add Expense'));
+    document.getElementById('scanReceiptBtn')?.addEventListener('click', () => showView('scannerView'));
     document.getElementById('settingsBtn').addEventListener('click', () => showView('settingsView'));
     document.getElementById('cancelBtn').addEventListener('click', () => switchTab(currentTab));
     const closeDetailBtn = document.getElementById('closeDetailBtn');
