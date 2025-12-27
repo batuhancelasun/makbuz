@@ -249,26 +249,48 @@ function renderCategorySelect() {
     });
 }
 
-// Items management
+// Items management - items are stored as objects { name: string, price: number }
 let currentItems = [];
 
 function setupItemsInput() {
     const itemsInput = document.getElementById('itemsInput');
+    const itemPriceInput = document.getElementById('itemPriceInput');
+    const addItemBtn = document.getElementById('addItemBtn');
     const itemsList = document.getElementById('itemsList');
     
     if (!itemsInput || !itemsList) return;
     
+    // Add item on Enter key
     itemsInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            const value = itemsInput.value.trim();
-            if (value && !currentItems.includes(value)) {
-                currentItems.push(value);
-                updateItemsDisplay();
-                itemsInput.value = '';
-            }
+            addCurrentItem();
         }
     });
+    
+    // Add item on button click
+    if (addItemBtn) {
+        addItemBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            addCurrentItem();
+        });
+    }
+}
+
+function addCurrentItem() {
+    const itemsInput = document.getElementById('itemsInput');
+    const itemPriceInput = document.getElementById('itemPriceInput');
+    
+    const name = itemsInput?.value?.trim();
+    const price = parseFloat(itemPriceInput?.value) || 0;
+    
+    if (name && !currentItems.some(item => item.name.toLowerCase() === name.toLowerCase())) {
+        currentItems.push({ name, price });
+        updateItemsDisplay();
+        if (itemsInput) itemsInput.value = '';
+        if (itemPriceInput) itemPriceInput.value = '';
+        itemsInput?.focus();
+    }
 }
 
 function updateItemsDisplay() {
@@ -277,14 +299,20 @@ function updateItemsDisplay() {
     
     if (!itemsList || !hiddenInput) return;
     
-    itemsList.innerHTML = currentItems.map((item, index) => `
-        <span class="item-tag" data-index="${index}">
-            ${item}
-            <button type="button" class="item-tag-remove" onclick="removeItem(${index})">×</button>
-        </span>
-    `).join('');
+    itemsList.innerHTML = currentItems.map((item, index) => {
+        const itemName = typeof item === 'object' ? item.name : item;
+        const itemPrice = typeof item === 'object' ? item.price : 0;
+        return `
+            <span class="item-tag" data-index="${index}">
+                <span class="item-tag-name">${itemName}</span>
+                ${itemPrice > 0 ? `<span class="item-tag-price">${formatCurrency(itemPrice)}</span>` : ''}
+                <button type="button" class="item-tag-remove" onclick="removeItem(${index})">×</button>
+            </span>
+        `;
+    }).join('');
     
-    hiddenInput.value = currentItems.join(',');
+    // Store as JSON string for the hidden input
+    hiddenInput.value = JSON.stringify(currentItems);
 }
 
 function removeItem(index) {
@@ -320,14 +348,30 @@ function resetExpenseForm() {
 function handleExpenseSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
+    
+    // Parse items - currentItems now contains objects with name and price
+    let items = currentItems.length > 0 ? currentItems : [];
+    
+    // Fallback: try to parse from hidden input if currentItems is empty
+    if (items.length === 0) {
+        try {
+            const hiddenItems = formData.get('items');
+            if (hiddenItems) {
+                items = JSON.parse(hiddenItems);
+            }
+        } catch (e) {
+            items = [];
+        }
+    }
+    
     const expense = {
         place: formData.get('place'),
         category: formData.get('category'),
         amount: parseFloat(formData.get('amount')),
         date: formData.get('date'),
-        items: currentItems.length > 0 ? currentItems : (formData.get('items') ? formData.get('items').split(',').map(i => i.trim()).filter(i => i) : []),
+        items: items,
         notes: formData.get('notes'),
-        isIncome: formData.get('isIncome') === 'on',
+        isIncome: document.getElementById('isIncome')?.value === 'true',
         isRecurring: formData.get('isRecurring') === 'on',
         recurringFrequency: formData.get('recurringFrequency') || null,
         recurringEndDate: formData.get('recurringEndDate') || null
@@ -414,7 +458,20 @@ function editExpense(id) {
     document.getElementById('category').value = expense.category || '';
     document.getElementById('amount').value = expense.amount || '';
     document.getElementById('date').value = expense.date || '';
-    currentItems = expense.items && Array.isArray(expense.items) ? [...expense.items] : [];
+    
+    // Normalize items to new format { name, price }
+    if (expense.items && Array.isArray(expense.items)) {
+        currentItems = expense.items.map(item => {
+            if (typeof item === 'object' && item.name) {
+                return { name: item.name, price: item.price || 0 };
+            } else if (typeof item === 'string') {
+                return { name: item, price: 0 };
+            }
+            return { name: String(item), price: 0 };
+        });
+    } else {
+        currentItems = [];
+    }
     updateItemsDisplay();
     document.getElementById('notes').value = expense.notes || '';
     
@@ -653,7 +710,7 @@ function renderItemsStats() {
     expenses.forEach(expense => {
         if (expense.items && Array.isArray(expense.items)) {
             expense.items.forEach(item => {
-                const itemName = item.trim().toLowerCase();
+                const itemName = getItemName(item);
                 if (itemName) {
                     itemCounts[itemName] = (itemCounts[itemName] || 0) + 1;
                 }
@@ -752,6 +809,24 @@ function renderAllExpenses() {
     `).join('');
 }
 
+// Helper function to get item name (handles both old and new format)
+function getItemName(item) {
+    if (typeof item === 'object' && item.name) {
+        return item.name.trim().toLowerCase();
+    } else if (typeof item === 'string') {
+        return item.trim().toLowerCase();
+    }
+    return '';
+}
+
+// Helper function to get item price (handles both old and new format)
+function getItemPrice(item) {
+    if (typeof item === 'object' && item.price !== undefined) {
+        return parseFloat(item.price) || 0;
+    }
+    return 0;
+}
+
 // Render all items for Items tab
 function renderAllItems() {
     const container = document.getElementById('allItemsList');
@@ -759,24 +834,33 @@ function renderAllItems() {
     
     const searchQuery = document.getElementById('itemSearch')?.value?.toLowerCase() || '';
     
-    // Count all items across all expenses
+    // Count all items across all expenses with their individual prices
     const itemData = {};
     expenses.forEach(expense => {
         if (expense.items && Array.isArray(expense.items)) {
             expense.items.forEach(item => {
-                const itemName = item.trim().toLowerCase();
+                const itemName = getItemName(item);
+                const itemPrice = getItemPrice(item);
+                
                 if (itemName) {
                     if (!itemData[itemName]) {
-                        itemData[itemName] = { count: 0, totalSpent: 0, lastDate: null };
+                        itemData[itemName] = { count: 0, totalSpent: 0, lastDate: null, avgPrice: 0 };
                     }
                     itemData[itemName].count++;
-                    itemData[itemName].totalSpent += expense.amount || 0;
+                    itemData[itemName].totalSpent += itemPrice;
                     const expenseDate = new Date(expense.date);
                     if (!itemData[itemName].lastDate || expenseDate > new Date(itemData[itemName].lastDate)) {
                         itemData[itemName].lastDate = expense.date;
                     }
                 }
             });
+        }
+    });
+    
+    // Calculate average price
+    Object.values(itemData).forEach(data => {
+        if (data.count > 0) {
+            data.avgPrice = data.totalSpent / data.count;
         }
     });
     
@@ -799,7 +883,7 @@ function renderAllItems() {
             </div>
             <div class="item-card-stats">
                 <span>💰 ${formatCurrency(item.totalSpent)}</span>
-                <span>📅 ${formatDate(item.lastDate)}</span>
+                <span>📊 ~${formatCurrency(item.avgPrice)}/ea</span>
             </div>
         </div>
     `).join('');
@@ -869,6 +953,28 @@ function showExpenseDetail(id) {
     const expense = expenses.find(e => e.id === id);
     if (!expense) return;
     
+    // Build items HTML with prices if available
+    let itemsHtml = '';
+    if (expense.items && expense.items.length > 0) {
+        itemsHtml = `
+        <div class="detail-item">
+            <span class="detail-label">Items (${expense.items.length})</span>
+            <div class="detail-items-list">
+                ${expense.items.map(item => {
+                    const name = getItemName(item) || (typeof item === 'string' ? item : '');
+                    const price = getItemPrice(item);
+                    const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+                    return `
+                        <span class="detail-item-tag" onclick="showItemDetail('${name}')">
+                            ${displayName}${price > 0 ? ` <small>(${formatCurrency(price)})</small>` : ''}
+                        </span>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+        `;
+    }
+    
     const content = `
         <div class="detail-item">
             <span class="detail-label">Place</span>
@@ -880,22 +986,13 @@ function showExpenseDetail(id) {
         </div>
         <div class="detail-item">
             <span class="detail-label">Amount</span>
-            <div class="detail-value">${formatCurrency(expense.amount)}</div>
+            <div class="detail-value">${expense.isIncome ? '+' : ''}${formatCurrency(expense.amount)}</div>
         </div>
         <div class="detail-item">
             <span class="detail-label">Date</span>
             <div class="detail-value">${formatDate(expense.date)}</div>
         </div>
-        ${expense.items && expense.items.length > 0 ? `
-        <div class="detail-item">
-            <span class="detail-label">Items</span>
-            <div class="detail-items-list">
-                ${expense.items.map(item => `
-                    <span class="detail-item-tag" onclick="showItemDetail('${item.toLowerCase()}')">${item}</span>
-                `).join('')}
-            </div>
-        </div>
-        ` : ''}
+        ${itemsHtml}
         ${expense.notes ? `
         <div class="detail-item">
             <span class="detail-label">Notes</span>
@@ -910,24 +1007,43 @@ function showExpenseDetail(id) {
         ` : ''}
     `;
     
-    document.getElementById('detailTitle').textContent = 'Expense Details';
+    document.getElementById('detailTitle').textContent = expense.isIncome ? 'Income Details' : 'Expense Details';
     document.getElementById('detailContent').innerHTML = content;
     showView('detailView');
 }
 
 function showItemDetail(itemName) {
     const itemNameLower = itemName.toLowerCase();
+    
+    // Find expenses containing this item
     const itemExpenses = expenses.filter(expense => 
-        expense.items && expense.items.some(item => item.toLowerCase() === itemNameLower)
+        expense.items && expense.items.some(item => getItemName(item) === itemNameLower)
     );
     
     if (itemExpenses.length === 0) return;
     
-    const totalCount = itemExpenses.reduce((sum, exp) => {
-        return sum + (exp.items.filter(i => i.toLowerCase() === itemNameLower).length);
-    }, 0);
+    // Calculate stats from individual item prices
+    let totalCount = 0;
+    let totalSpent = 0;
+    const purchaseDetails = [];
     
-    const totalAmount = itemExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    itemExpenses.forEach(expense => {
+        expense.items.forEach(item => {
+            if (getItemName(item) === itemNameLower) {
+                totalCount++;
+                const price = getItemPrice(item);
+                totalSpent += price;
+                purchaseDetails.push({
+                    expenseId: expense.id,
+                    place: expense.place,
+                    date: expense.date,
+                    price: price
+                });
+            }
+        });
+    });
+    
+    const avgPrice = totalCount > 0 ? totalSpent / totalCount : 0;
     
     const content = `
         <div class="detail-item">
@@ -939,15 +1055,19 @@ function showItemDetail(itemName) {
             <div class="detail-value">${totalCount} time${totalCount !== 1 ? 's' : ''}</div>
         </div>
         <div class="detail-item">
-            <span class="detail-label">Total Amount Spent</span>
-            <div class="detail-value">${formatCurrency(totalAmount)}</div>
+            <span class="detail-label">Total Spent on This Item</span>
+            <div class="detail-value">${formatCurrency(totalSpent)}</div>
         </div>
         <div class="detail-item">
-            <span class="detail-label">Purchased In</span>
+            <span class="detail-label">Average Price</span>
+            <div class="detail-value">${formatCurrency(avgPrice)}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Purchase History</span>
             <div class="detail-items-list">
-                ${itemExpenses.map(expense => `
-                    <div class="detail-item-tag clickable" onclick="showExpenseDetail('${expense.id}')" style="display: block; margin-bottom: 0.5rem;">
-                        <strong>${expense.place || 'Unknown'}</strong> - ${formatDate(expense.date)} - ${formatCurrency(expense.amount)}
+                ${purchaseDetails.map(p => `
+                    <div class="detail-item-tag clickable" onclick="showExpenseDetail('${p.expenseId}')" style="display: block; margin-bottom: 0.5rem;">
+                        <strong>${p.place || 'Unknown'}</strong> - ${formatDate(p.date)} - ${formatCurrency(p.price)}
                     </div>
                 `).join('')}
             </div>
@@ -1013,14 +1133,21 @@ function displayScanResults(data) {
     document.getElementById('scanDate').textContent = data.date || 'Not found';
     document.getElementById('scanAmount').textContent = data.amount ? formatCurrency(data.amount) : 'Not found';
     
-    // Display items as a list (one per item)
+    // Display items as a list with prices
     const itemsContainer = document.getElementById('scanItems');
     if (data.items && Array.isArray(data.items) && data.items.length > 0) {
-        itemsContainer.innerHTML = '<ul class="scan-items-list">' + 
-            data.items.map(item => `<li>${item}</li>`).join('') + 
-            '</ul>';
+        // Check if items have price property (new format)
+        if (typeof data.items[0] === 'object' && data.items[0].name) {
+            itemsContainer.innerHTML = '<ul class="scan-items-list">' + 
+                data.items.map(item => `<li><span class="item-name-scan">${item.name}</span><span class="item-price-scan">${formatCurrency(item.price || 0)}</span></li>`).join('') + 
+                '</ul>';
+        } else {
+            // Old format (just strings)
+            itemsContainer.innerHTML = '<ul class="scan-items-list">' + 
+                data.items.map(item => `<li>${item}</li>`).join('') + 
+                '</ul>';
+        }
     } else if (data.items && typeof data.items === 'string') {
-        // If items is a string, split it
         const itemsArray = data.items.split(',').map(i => i.trim()).filter(i => i);
         itemsContainer.innerHTML = '<ul class="scan-items-list">' + 
             itemsArray.map(item => `<li>${item}</li>`).join('') + 
@@ -1047,7 +1174,6 @@ function useScanData() {
         const placeInput = document.getElementById('place');
         const amountInput = document.getElementById('amount');
         const dateInput = document.getElementById('date');
-        const itemsInput = document.getElementById('items');
         
         if (placeInput) {
             placeInput.value = scannedData.place && scannedData.place !== 'Not found' ? scannedData.place : '';
@@ -1060,7 +1186,6 @@ function useScanData() {
         
         // Handle date - ensure it's in YYYY-MM-DD format
         let dateValue = scannedData.date || new Date().toISOString().split('T')[0];
-        // If date is in a different format, try to parse it
         if (dateValue && dateValue !== 'Not found' && !dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
             const parsedDate = new Date(dateValue);
             if (!isNaN(parsedDate.getTime())) {
@@ -1074,21 +1199,23 @@ function useScanData() {
             dateInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
         
-        // Handle items - populate the items list
+        // Handle items with prices - populate the items list
+        currentItems = [];
         if (scannedData.items && Array.isArray(scannedData.items) && scannedData.items.length > 0) {
-            // Filter out any null or empty items and add to currentItems
-            currentItems = scannedData.items.filter(item => item && item.trim());
-            updateItemsDisplay();
+            scannedData.items.forEach(item => {
+                if (typeof item === 'object' && item.name) {
+                    // New format with price
+                    currentItems.push({ name: item.name.trim(), price: item.price || 0 });
+                } else if (typeof item === 'string' && item.trim()) {
+                    // Old format (just string)
+                    currentItems.push({ name: item.trim(), price: 0 });
+                }
+            });
         } else if (scannedData.items && typeof scannedData.items === 'string' && scannedData.items !== 'Not found') {
             // Split comma-separated string
-            currentItems = scannedData.items.split(',').map(i => i.trim()).filter(i => i);
-            updateItemsDisplay();
+            currentItems = scannedData.items.split(',').map(i => i.trim()).filter(i => i).map(name => ({ name, price: 0 }));
         }
-        
-        // Also trigger events for other fields to ensure they're recognized
-        if (placeInput) placeInput.dispatchEvent(new Event('input', { bubbles: true }));
-        if (amountInput) amountInput.dispatchEvent(new Event('input', { bubbles: true }));
-        if (dateInput) dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        updateItemsDisplay();
         
         // Reset scanner view
         resetScanner();

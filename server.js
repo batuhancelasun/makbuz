@@ -254,14 +254,18 @@ app.post('/api/scan-receipt', upload.single('receipt'), async (req, res) => {
   "place": "store name or merchant name",
   "date": "date in YYYY-MM-DD format",
   "amount": "total amount as a number (without currency symbol)",
-  "items": ["item1", "item2", "item3"]
+  "items": [
+    {"name": "item name", "price": 1.99},
+    {"name": "another item", "price": 2.50}
+  ]
 }
 
 Rules:
 - Extract the store/merchant name as "place"
 - Extract the date and convert to YYYY-MM-DD format
 - Extract the total amount as a number (remove currency symbols)
-- List all purchased items as an array
+- List all purchased items as an array of objects with "name" and "price" (price as number)
+- If item price cannot be determined, set price to 0
 - If any field cannot be determined, use null
 - Return ONLY valid JSON, no additional text`;
 

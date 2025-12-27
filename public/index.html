@@ -162,10 +162,14 @@
                             <label for="items">Items</label>
                             <div class="items-input-container">
                                 <div id="itemsList" class="items-list"></div>
-                                <input type="text" id="itemsInput" placeholder="Type item name and press Enter" autocomplete="off">
+                                <div class="item-input-row">
+                                    <input type="text" id="itemsInput" placeholder="Item name" autocomplete="off">
+                                    <input type="number" id="itemPriceInput" placeholder="Price" step="0.01" min="0">
+                                    <button type="button" id="addItemBtn" class="btn-add-item">➕</button>
+                                </div>
                                 <input type="hidden" id="items" name="items">
                             </div>
-                            <small>Add items one by one. Click on an item to remove it.</small>
+                            <small>Add items with their prices. Press Enter or click ➕ to add.</small>
                         </div>
                         <div class="form-group">
                             <label for="notes">Notes</label>
