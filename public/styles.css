@@ -517,6 +517,75 @@ header h1 {
   }
 }
 
+/* Items Input */
+.items-input-container {
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: var(--background);
+  min-height: 60px;
+}
+
+.items-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.item-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--primary);
+  color: white;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.item-tag:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.item-tag-remove {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0;
+  transition: background 0.2s;
+}
+
+.item-tag-remove:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+#itemsInput {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  padding: 0.5rem 0;
+  outline: none;
+}
+
+#itemsInput::placeholder {
+  color: var(--text-secondary);
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;
@@ -527,5 +596,69 @@ header h1 {
 .empty-state-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+}
+
+/* Detail View */
+.detail-view {
+  background: var(--surface);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  box-shadow: 0 2px 8px var(--shadow);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.detail-item {
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.detail-value {
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.detail-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-item-tag {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.detail-item-tag:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clickable:hover {
+  transform: translateY(-2px);
+  opacity: 0.8;
 }
 

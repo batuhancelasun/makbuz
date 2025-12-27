@@ -8,7 +8,7 @@
     <title>Makbuz - Expense Tracker</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="/styles.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+    <link rel="icon" href="/icon-transparent.png">
 </head>
 <body>
     <div class="container">
@@ -84,8 +84,13 @@
                             <input type="date" id="date" name="date" required>
                         </div>
                         <div class="form-group">
-                            <label for="items">Items (comma-separated)</label>
-                            <textarea id="items" name="items" rows="3" placeholder="Item 1, Item 2, Item 3"></textarea>
+                            <label for="items">Items</label>
+                            <div class="items-input-container">
+                                <div id="itemsList" class="items-list"></div>
+                                <input type="text" id="itemsInput" placeholder="Type item name and press Enter" autocomplete="off">
+                                <input type="hidden" id="items" name="items">
+                            </div>
+                            <small>Add items one by one. Click on an item to remove it.</small>
                         </div>
                         <div class="form-group">
                             <label for="notes">Notes</label>
@@ -167,6 +172,17 @@
                             <button type="submit" class="btn btn-primary">Save Settings</button>
                         </div>
                     </form>
+                </div>
+            </section>
+
+            <!-- Detail View -->
+            <section id="detailView" class="view">
+                <div class="detail-view">
+                    <h2 id="detailTitle">Details</h2>
+                    <div id="detailContent"></div>
+                    <div class="form-actions" style="margin-top: 2rem;">
+                        <button id="closeDetailBtn" class="btn btn-secondary">Close</button>
+                    </div>
                 </div>
             </section>
         </main>

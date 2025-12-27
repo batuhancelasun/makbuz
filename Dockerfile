@@ -11,6 +11,10 @@ RUN npm ci --only=production
 # Copy application files
 COPY . .
 
+# Copy icons to public directory
+COPY makbuz_logo.png public/icon.png
+COPY makbuz_logo_transparent.png public/icon-transparent.png
+
 # Create data directory
 RUN mkdir -p data uploads
 

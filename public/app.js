@@ -93,6 +93,17 @@ function setupEventListeners() {
     // Forms
     document.getElementById('expenseForm').addEventListener('submit', handleExpenseSubmit);
     document.getElementById('settingsForm').addEventListener('submit', handleSettingsSubmit);
+    
+    // Items input handling
+    setupItemsInput();
+    
+    // Recurring expense toggle
+    document.getElementById('isRecurring')?.addEventListener('change', (e) => {
+        const recurringOptions = document.getElementById('recurringOptions');
+        if (recurringOptions) {
+            recurringOptions.style.display = e.target.checked ? 'block' : 'none';
+        }
+    });
 
     // Receipt scanning
     document.getElementById('receiptInput').addEventListener('change', handleReceiptUpload);
@@ -149,12 +160,60 @@ function renderCategorySelect() {
     });
 }
 
+// Items management
+let currentItems = [];
+
+function setupItemsInput() {
+    const itemsInput = document.getElementById('itemsInput');
+    const itemsList = document.getElementById('itemsList');
+    
+    if (!itemsInput || !itemsList) return;
+    
+    itemsInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const value = itemsInput.value.trim();
+            if (value && !currentItems.includes(value)) {
+                currentItems.push(value);
+                updateItemsDisplay();
+                itemsInput.value = '';
+            }
+        }
+    });
+}
+
+function updateItemsDisplay() {
+    const itemsList = document.getElementById('itemsList');
+    const hiddenInput = document.getElementById('items');
+    
+    if (!itemsList || !hiddenInput) return;
+    
+    itemsList.innerHTML = currentItems.map((item, index) => `
+        <span class="item-tag" data-index="${index}">
+            ${item}
+            <button type="button" class="item-tag-remove" onclick="removeItem(${index})">×</button>
+        </span>
+    `).join('');
+    
+    hiddenInput.value = currentItems.join(',');
+}
+
+function removeItem(index) {
+    currentItems.splice(index, 1);
+    updateItemsDisplay();
+}
+
+// Make removeItem available globally
+window.removeItem = removeItem;
+
 // Expense form handling
 function resetExpenseForm() {
     editingExpenseId = null;
     document.getElementById('expenseForm').reset();
     document.getElementById('date').valueAsDate = new Date();
     document.getElementById('formTitle').textContent = 'Add Expense';
+    currentItems = [];
+    updateItemsDisplay();
 }
 
 function handleExpenseSubmit(e) {
@@ -165,8 +224,12 @@ function handleExpenseSubmit(e) {
         category: formData.get('category'),
         amount: parseFloat(formData.get('amount')),
         date: formData.get('date'),
-        items: formData.get('items') ? formData.get('items').split(',').map(i => i.trim()) : [],
-        notes: formData.get('notes')
+        items: currentItems.length > 0 ? currentItems : (formData.get('items') ? formData.get('items').split(',').map(i => i.trim()).filter(i => i) : []),
+        notes: formData.get('notes'),
+        isIncome: formData.get('isIncome') === 'on',
+        isRecurring: formData.get('isRecurring') === 'on',
+        recurringFrequency: formData.get('recurringFrequency') || null,
+        recurringEndDate: formData.get('recurringEndDate') || null
     };
 
     if (editingExpenseId) {
@@ -241,7 +304,8 @@ function editExpense(id) {
     document.getElementById('category').value = expense.category || '';
     document.getElementById('amount').value = expense.amount || '';
     document.getElementById('date').value = expense.date || '';
-    document.getElementById('items').value = expense.items ? expense.items.join(', ') : '';
+    currentItems = expense.items && Array.isArray(expense.items) ? [...expense.items] : [];
+    updateItemsDisplay();
     document.getElementById('notes').value = expense.notes || '';
     document.getElementById('formTitle').textContent = 'Edit Expense';
     showView('expenseFormView');
@@ -260,7 +324,7 @@ function renderExpenses() {
     }
 
     container.innerHTML = recent.map(expense => `
-        <div class="expense-item">
+        <div class="expense-item clickable" onclick="showExpenseDetail('${expense.id}')">
             <div class="expense-info">
                 <div class="expense-place">${expense.place || 'Unknown'}</div>
                 <div class="expense-details">
@@ -268,7 +332,7 @@ function renderExpenses() {
                 </div>
             </div>
             <div class="expense-amount">${formatCurrency(expense.amount)}</div>
-            <div class="expense-actions">
+            <div class="expense-actions" onclick="event.stopPropagation()">
                 <button class="btn-icon" onclick="editExpense('${expense.id}')" title="Edit">✏️</button>
                 <button class="btn-icon" onclick="deleteExpense('${expense.id}')" title="Delete">🗑️</button>
             </div>
@@ -354,10 +418,61 @@ function renderChart() {
                 legend: {
                     position: 'bottom'
                 }
+            },
+            onClick: (event, elements) => {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const category = labels[index];
+                    showCategoryDetail(category);
+                }
             }
         }
     });
 }
+
+function showCategoryDetail(category) {
+    const categoryExpenses = expenses.filter(e => e.category === category);
+    
+    if (categoryExpenses.length === 0) return;
+    
+    const totalAmount = categoryExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const totalItems = categoryExpenses.reduce((sum, e) => sum + (e.items ? e.items.length : 0), 0);
+    
+    const content = `
+        <div class="detail-item">
+            <span class="detail-label">Category</span>
+            <div class="detail-value">${category}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Total Expenses</span>
+            <div class="detail-value">${categoryExpenses.length}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Total Amount</span>
+            <div class="detail-value">${formatCurrency(totalAmount)}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Total Items</span>
+            <div class="detail-value">${totalItems}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Expenses</span>
+            <div class="detail-items-list">
+                ${categoryExpenses.map(expense => `
+                    <div class="detail-item-tag clickable" onclick="showExpenseDetail('${expense.id}')" style="display: block; margin-bottom: 0.5rem;">
+                        <strong>${expense.place || 'Unknown'}</strong> - ${formatDate(expense.date)} - ${formatCurrency(expense.amount)}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('detailTitle').textContent = 'Category Details';
+    document.getElementById('detailContent').innerHTML = content;
+    showView('detailView');
+}
+
+window.showCategoryDetail = showCategoryDetail;
 
 // Render items statistics
 function renderItemsStats() {
@@ -388,12 +503,111 @@ function renderItemsStats() {
     }
 
     container.innerHTML = sortedItems.map(([item, count]) => `
-        <div class="item-stat">
+        <div class="item-stat clickable" onclick="showItemDetail('${item}')">
             <span class="item-name">${item.charAt(0).toUpperCase() + item.slice(1)}</span>
             <span class="item-count">${count}x</span>
         </div>
     `).join('');
 }
+
+// Detail view functions
+function showExpenseDetail(id) {
+    const expense = expenses.find(e => e.id === id);
+    if (!expense) return;
+    
+    const content = `
+        <div class="detail-item">
+            <span class="detail-label">Place</span>
+            <div class="detail-value">${expense.place || 'Unknown'}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Category</span>
+            <div class="detail-value">${expense.category || 'Uncategorized'}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Amount</span>
+            <div class="detail-value">${formatCurrency(expense.amount)}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Date</span>
+            <div class="detail-value">${formatDate(expense.date)}</div>
+        </div>
+        ${expense.items && expense.items.length > 0 ? `
+        <div class="detail-item">
+            <span class="detail-label">Items</span>
+            <div class="detail-items-list">
+                ${expense.items.map(item => `
+                    <span class="detail-item-tag" onclick="showItemDetail('${item.toLowerCase()}')">${item}</span>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+        ${expense.notes ? `
+        <div class="detail-item">
+            <span class="detail-label">Notes</span>
+            <div class="detail-value">${expense.notes}</div>
+        </div>
+        ` : ''}
+        ${expense.isRecurring ? `
+        <div class="detail-item">
+            <span class="detail-label">Recurring</span>
+            <div class="detail-value">${expense.recurringFrequency || 'N/A'}</div>
+        </div>
+        ` : ''}
+    `;
+    
+    document.getElementById('detailTitle').textContent = 'Expense Details';
+    document.getElementById('detailContent').innerHTML = content;
+    showView('detailView');
+}
+
+function showItemDetail(itemName) {
+    const itemNameLower = itemName.toLowerCase();
+    const itemExpenses = expenses.filter(expense => 
+        expense.items && expense.items.some(item => item.toLowerCase() === itemNameLower)
+    );
+    
+    if (itemExpenses.length === 0) return;
+    
+    const totalCount = itemExpenses.reduce((sum, exp) => {
+        return sum + (exp.items.filter(i => i.toLowerCase() === itemNameLower).length);
+    }, 0);
+    
+    const totalAmount = itemExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+    
+    const content = `
+        <div class="detail-item">
+            <span class="detail-label">Item Name</span>
+            <div class="detail-value">${itemName.charAt(0).toUpperCase() + itemName.slice(1)}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Total Purchases</span>
+            <div class="detail-value">${totalCount} time${totalCount !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Total Amount Spent</span>
+            <div class="detail-value">${formatCurrency(totalAmount)}</div>
+        </div>
+        <div class="detail-item">
+            <span class="detail-label">Purchased In</span>
+            <div class="detail-items-list">
+                ${itemExpenses.map(expense => `
+                    <div class="detail-item-tag clickable" onclick="showExpenseDetail('${expense.id}')" style="display: block; margin-bottom: 0.5rem;">
+                        <strong>${expense.place || 'Unknown'}</strong> - ${formatDate(expense.date)} - ${formatCurrency(expense.amount)}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('detailTitle').textContent = 'Item Details';
+    document.getElementById('detailContent').innerHTML = content;
+    showView('detailView');
+}
+
+// Make functions available globally
+window.showExpenseDetail = showExpenseDetail;
+window.showItemDetail = showItemDetail;
 
 // Receipt scanning
 let scannedData = null;
@@ -506,18 +720,15 @@ function useScanData() {
             dateInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
         
-        // Handle items - ensure it's an array and join with comma
-        let itemsValue = '';
+        // Handle items - populate the items list
         if (scannedData.items && Array.isArray(scannedData.items) && scannedData.items.length > 0) {
-            // Filter out any null or empty items
-            itemsValue = scannedData.items.filter(item => item && item.trim()).join(', ');
+            // Filter out any null or empty items and add to currentItems
+            currentItems = scannedData.items.filter(item => item && item.trim());
+            updateItemsDisplay();
         } else if (scannedData.items && typeof scannedData.items === 'string' && scannedData.items !== 'Not found') {
-            itemsValue = scannedData.items;
-        }
-        if (itemsInput) {
-            itemsInput.value = itemsValue;
-            // Trigger input event to ensure form validation works
-            itemsInput.dispatchEvent(new Event('input', { bubbles: true }));
+            // Split comma-separated string
+            currentItems = scannedData.items.split(',').map(i => i.trim()).filter(i => i);
+            updateItemsDisplay();
         }
         
         // Also trigger events for other fields to ensure they're recognized

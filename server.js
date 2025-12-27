@@ -89,14 +89,56 @@ app.get('/api/expenses', async (req, res) => {
 app.post('/api/expenses', async (req, res) => {
   try {
     const expenses = await readJSON('expenses.json');
-    const newExpense = {
-      id: Date.now().toString(),
-      ...req.body,
-      createdAt: new Date().toISOString()
-    };
-    expenses.push(newExpense);
-    await writeJSON('expenses.json', expenses);
-    res.json(newExpense);
+    const expenseData = req.body;
+    
+    // Handle recurring expenses
+    if (expenseData.isRecurring && expenseData.recurringFrequency) {
+      const createdExpenses = [];
+      const startDate = new Date(expenseData.date);
+      const endDate = expenseData.recurringEndDate ? new Date(expenseData.recurringEndDate) : null;
+      
+      let currentDate = new Date(startDate);
+      let count = 0;
+      const maxRecurrences = 365; // Safety limit
+      
+      while (count < maxRecurrences && (!endDate || currentDate <= endDate)) {
+        const newExpense = {
+          id: `${Date.now()}-${count}`,
+          ...expenseData,
+          date: currentDate.toISOString().split('T')[0],
+          createdAt: new Date().toISOString()
+        };
+        delete newExpense.recurringEndDate; // Don't store end date in individual expenses
+        expenses.push(newExpense);
+        createdExpenses.push(newExpense);
+        
+        // Calculate next date based on frequency
+        if (expenseData.recurringFrequency === 'daily') {
+          currentDate.setDate(currentDate.getDate() + 1);
+        } else if (expenseData.recurringFrequency === 'weekly') {
+          currentDate.setDate(currentDate.getDate() + 7);
+        } else if (expenseData.recurringFrequency === 'monthly') {
+          currentDate.setMonth(currentDate.getMonth() + 1);
+        } else if (expenseData.recurringFrequency === 'yearly') {
+          currentDate.setFullYear(currentDate.getFullYear() + 1);
+        }
+        
+        count++;
+      }
+      
+      await writeJSON('expenses.json', expenses);
+      res.json({ created: createdExpenses.length, expenses: createdExpenses });
+    } else {
+      // Single expense
+      const newExpense = {
+        id: Date.now().toString(),
+        ...expenseData,
+        createdAt: new Date().toISOString()
+      };
+      expenses.push(newExpense);
+      await writeJSON('expenses.json', expenses);
+      res.json(newExpense);
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
