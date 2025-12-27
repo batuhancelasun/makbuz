@@ -1,10 +1,13 @@
-const CACHE_NAME = 'makbuz-v1';
+const CACHE_NAME = 'makbuz-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/styles.css',
   '/app.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/icon.png',
+  '/icon-transparent.png',
+  '/icon-dark.png'
 ];
 
 // Install event - cache resources

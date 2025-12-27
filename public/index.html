@@ -151,26 +151,26 @@
                     </div>
                 </div>
 
-                <!-- Monthly View -->
+                <!-- Monthly View (single month detail) -->
                 <div id="monthlyReport" class="report-section">
                     <div class="report-nav">
-                        <button id="prevYear" class="btn-nav">◀</button>
-                        <span id="reportYear" class="report-year">2025</span>
-                        <button id="nextYear" class="btn-nav">▶</button>
+                        <button id="prevMonth" class="btn-nav">◀</button>
+                        <span id="reportMonth" class="report-year">January 2025</span>
+                        <button id="nextMonth" class="btn-nav">▶</button>
                     </div>
                     
                     <div class="report-summary">
                         <div class="summary-card income">
-                            <span class="summary-label">Total Income</span>
-                            <span id="yearlyIncome" class="summary-value">€0.00</span>
+                            <span class="summary-label">Income</span>
+                            <span id="monthIncome" class="summary-value">€0.00</span>
                         </div>
                         <div class="summary-card expense">
-                            <span class="summary-label">Total Expenses</span>
-                            <span id="yearlyExpense" class="summary-value">€0.00</span>
+                            <span class="summary-label">Expenses</span>
+                            <span id="monthExpense" class="summary-value">€0.00</span>
                         </div>
                         <div class="summary-card net">
                             <span class="summary-label">Net Balance</span>
-                            <span id="yearlyNet" class="summary-value">€0.00</span>
+                            <span id="monthNet" class="summary-value">€0.00</span>
                         </div>
                     </div>
 
@@ -181,20 +181,26 @@
                     <div id="monthlyBreakdown" class="monthly-breakdown"></div>
                 </div>
 
-                <!-- Yearly View -->
+                <!-- Yearly View (navigate through years) -->
                 <div id="yearlyReport" class="report-section hidden">
+                    <div class="report-nav">
+                        <button id="prevYear" class="btn-nav">◀</button>
+                        <span id="reportYear" class="report-year">2025</span>
+                        <button id="nextYear" class="btn-nav">▶</button>
+                    </div>
+                    
                     <div class="report-summary">
                         <div class="summary-card income">
-                            <span class="summary-label">All-Time Income</span>
-                            <span id="allTimeIncome" class="summary-value">€0.00</span>
+                            <span class="summary-label">Total Income</span>
+                            <span id="yearIncome" class="summary-value">€0.00</span>
                         </div>
                         <div class="summary-card expense">
-                            <span class="summary-label">All-Time Expenses</span>
-                            <span id="allTimeExpense" class="summary-value">€0.00</span>
+                            <span class="summary-label">Total Expenses</span>
+                            <span id="yearExpense" class="summary-value">€0.00</span>
                         </div>
                         <div class="summary-card net">
                             <span class="summary-label">Net Balance</span>
-                            <span id="allTimeNet" class="summary-value">€0.00</span>
+                            <span id="yearNet" class="summary-value">€0.00</span>
                         </div>
                     </div>
 

@@ -9,6 +9,7 @@ let chart = null;
 let monthlyChart = null;
 let yearlyChart = null;
 let reportYear = new Date().getFullYear();
+let reportMonth = new Date().getMonth();
 
 // API base URL
 const API_BASE = '/api';
@@ -958,6 +959,9 @@ function renderRecurring() {
 }
 
 // Reports functions
+const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 function setupReportsListeners() {
     // Period selector
     document.querySelectorAll('.period-btn').forEach(btn => {
@@ -969,39 +973,146 @@ function setupReportsListeners() {
             document.getElementById('monthlyReport').classList.toggle('hidden', period !== 'monthly');
             document.getElementById('yearlyReport').classList.toggle('hidden', period !== 'yearly');
             
-            if (period === 'yearly') {
+            if (period === 'monthly') {
+                renderMonthlyReport();
+            } else {
                 renderYearlyReport();
             }
         });
     });
     
-    // Year navigation
+    // Month navigation (for monthly view)
+    document.getElementById('prevMonth')?.addEventListener('click', () => {
+        reportMonth--;
+        if (reportMonth < 0) {
+            reportMonth = 11;
+            reportYear--;
+        }
+        renderMonthlyReport();
+    });
+    
+    document.getElementById('nextMonth')?.addEventListener('click', () => {
+        reportMonth++;
+        if (reportMonth > 11) {
+            reportMonth = 0;
+            reportYear++;
+        }
+        renderMonthlyReport();
+    });
+    
+    // Year navigation (for yearly view)
     document.getElementById('prevYear')?.addEventListener('click', () => {
         reportYear--;
-        renderMonthlyReport();
+        renderYearlyReport();
     });
     
     document.getElementById('nextYear')?.addEventListener('click', () => {
         reportYear++;
-        renderMonthlyReport();
+        renderYearlyReport();
     });
 }
 
 function renderReports() {
-    document.getElementById('reportYear').textContent = reportYear;
     renderMonthlyReport();
 }
 
 function renderMonthlyReport() {
+    // Update header
+    document.getElementById('reportMonth').textContent = `${monthNames[reportMonth]} ${reportYear}`;
+    
+    // Get expenses for this month
+    const monthExpenses = expenses.filter(e => {
+        const d = new Date(e.date);
+        return d.getFullYear() === reportYear && d.getMonth() === reportMonth;
+    });
+    
+    const income = monthExpenses.filter(e => e.isIncome).reduce((sum, e) => sum + (e.amount || 0), 0);
+    const expense = monthExpenses.filter(e => !e.isIncome).reduce((sum, e) => sum + (e.amount || 0), 0);
+    const net = income - expense;
+    
+    // Update summary
+    document.getElementById('monthIncome').textContent = formatCurrency(income);
+    document.getElementById('monthExpense').textContent = formatCurrency(expense);
+    document.getElementById('monthNet').textContent = formatCurrency(net);
+    
+    // Group by category for chart
+    const categoryData = {};
+    monthExpenses.filter(e => !e.isIncome).forEach(e => {
+        const cat = e.category || 'Uncategorized';
+        categoryData[cat] = (categoryData[cat] || 0) + (e.amount || 0);
+    });
+    
+    // Render chart (pie chart of expenses by category)
+    renderMonthlyChart(categoryData);
+    
+    // Render breakdown (list of expenses)
+    const container = document.getElementById('monthlyBreakdown');
+    
+    if (monthExpenses.length === 0) {
+        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><p>No transactions this month</p></div>';
+        return;
+    }
+    
+    // Sort by date descending
+    const sorted = monthExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    container.innerHTML = sorted.map(e => `
+        <div class="month-row clickable" onclick="showExpenseDetail('${e.id}')">
+            <span class="month-name">${e.isIncome ? '💰' : '🧾'} ${e.place || 'Unknown'}</span>
+            <span class="month-expense">${formatDate(e.date)}</span>
+            <span class="month-net ${e.isIncome ? 'positive' : 'negative'}">${e.isIncome ? '+' : '-'}${formatCurrency(e.amount)}</span>
+        </div>
+    `).join('');
+}
+
+function renderMonthlyChart(categoryData) {
+    const ctx = document.getElementById('monthlyChart');
+    if (!ctx) return;
+    
+    if (monthlyChart) {
+        monthlyChart.destroy();
+    }
+    
+    const labels = Object.keys(categoryData);
+    const data = Object.values(categoryData);
+    
+    if (labels.length === 0) {
+        ctx.parentElement.innerHTML = '<p class="empty-state">No expense data for this month</p>';
+        return;
+    }
+    
+    monthlyChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: [
+                    '#6366f1', '#8b5cf6', '#ec4899', '#f59e0b',
+                    '#10b981', '#3b82f6', '#ef4444', '#14b8a6'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+function renderYearlyReport() {
     document.getElementById('reportYear').textContent = reportYear;
     
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    // Calculate monthly data for this year
     const monthData = [];
+    let yearIncome = 0;
+    let yearExpense = 0;
     
-    let yearlyIncome = 0;
-    let yearlyExpense = 0;
-    
-    // Calculate data for each month
     for (let month = 0; month < 12; month++) {
         const monthExpenses = expenses.filter(e => {
             const d = new Date(e.date);
@@ -1010,50 +1121,48 @@ function renderMonthlyReport() {
         
         const income = monthExpenses.filter(e => e.isIncome).reduce((sum, e) => sum + (e.amount || 0), 0);
         const expense = monthExpenses.filter(e => !e.isIncome).reduce((sum, e) => sum + (e.amount || 0), 0);
-        const net = income - expense;
         
-        yearlyIncome += income;
-        yearlyExpense += expense;
+        yearIncome += income;
+        yearExpense += expense;
         
         monthData.push({
-            name: monthNames[month],
+            name: monthNamesShort[month],
             month: month,
             income,
             expense,
-            net,
-            count: monthExpenses.length
+            net: income - expense
         });
     }
     
     // Update summary
-    document.getElementById('yearlyIncome').textContent = formatCurrency(yearlyIncome);
-    document.getElementById('yearlyExpense').textContent = formatCurrency(yearlyExpense);
-    document.getElementById('yearlyNet').textContent = formatCurrency(yearlyIncome - yearlyExpense);
+    document.getElementById('yearIncome').textContent = formatCurrency(yearIncome);
+    document.getElementById('yearExpense').textContent = formatCurrency(yearExpense);
+    document.getElementById('yearNet').textContent = formatCurrency(yearIncome - yearExpense);
     
     // Render chart
-    renderMonthlyChart(monthData);
+    renderYearlyChart(monthData);
     
     // Render breakdown
-    const container = document.getElementById('monthlyBreakdown');
+    const container = document.getElementById('yearlyBreakdown');
     container.innerHTML = monthData.map(m => `
-        <div class="month-row" onclick="filterByMonth(${reportYear}, ${m.month})">
-            <span class="month-name">${m.name} ${reportYear}</span>
-            <span class="month-income">+${formatCurrency(m.income)}</span>
-            <span class="month-expense">-${formatCurrency(m.expense)}</span>
-            <span class="month-net ${m.net >= 0 ? 'positive' : 'negative'}">${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}</span>
+        <div class="year-row" onclick="goToMonth(${reportYear}, ${m.month})">
+            <span class="year-name">${m.name}</span>
+            <span class="year-income">+${formatCurrency(m.income)}</span>
+            <span class="year-expense">-${formatCurrency(m.expense)}</span>
+            <span class="year-net ${m.net >= 0 ? 'positive' : 'negative'}">${m.net >= 0 ? '+' : ''}${formatCurrency(m.net)}</span>
         </div>
     `).join('');
 }
 
-function renderMonthlyChart(monthData) {
-    const ctx = document.getElementById('monthlyChart');
+function renderYearlyChart(monthData) {
+    const ctx = document.getElementById('yearlyChart');
     if (!ctx) return;
     
-    if (monthlyChart) {
-        monthlyChart.destroy();
+    if (yearlyChart) {
+        yearlyChart.destroy();
     }
     
-    monthlyChart = new Chart(ctx, {
+    yearlyChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: monthData.map(m => m.name),
@@ -1091,102 +1200,18 @@ function renderMonthlyChart(monthData) {
     });
 }
 
-function renderYearlyReport() {
-    // Get all years with data
-    const yearData = {};
-    
-    expenses.forEach(e => {
-        const year = new Date(e.date).getFullYear();
-        if (!yearData[year]) {
-            yearData[year] = { income: 0, expense: 0 };
-        }
-        if (e.isIncome) {
-            yearData[year].income += e.amount || 0;
-        } else {
-            yearData[year].expense += e.amount || 0;
-        }
-    });
-    
-    const years = Object.keys(yearData).sort((a, b) => b - a);
-    
-    // Calculate all-time totals
-    let allTimeIncome = 0;
-    let allTimeExpense = 0;
-    
-    years.forEach(year => {
-        allTimeIncome += yearData[year].income;
-        allTimeExpense += yearData[year].expense;
-    });
-    
-    document.getElementById('allTimeIncome').textContent = formatCurrency(allTimeIncome);
-    document.getElementById('allTimeExpense').textContent = formatCurrency(allTimeExpense);
-    document.getElementById('allTimeNet').textContent = formatCurrency(allTimeIncome - allTimeExpense);
-    
-    // Render chart
-    renderYearlyChart(years, yearData);
-    
-    // Render breakdown
-    const container = document.getElementById('yearlyBreakdown');
-    container.innerHTML = years.map(year => {
-        const net = yearData[year].income - yearData[year].expense;
-        return `
-            <div class="year-row" onclick="filterByYear(${year})">
-                <span class="year-name">${year}</span>
-                <span class="year-income">+${formatCurrency(yearData[year].income)}</span>
-                <span class="year-expense">-${formatCurrency(yearData[year].expense)}</span>
-                <span class="year-net ${net >= 0 ? 'positive' : 'negative'}">${net >= 0 ? '+' : ''}${formatCurrency(net)}</span>
-            </div>
-        `;
-    }).join('');
+function goToMonth(year, month) {
+    reportYear = year;
+    reportMonth = month;
+    // Switch to monthly view
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.period-btn[data-period="monthly"]').classList.add('active');
+    document.getElementById('monthlyReport').classList.remove('hidden');
+    document.getElementById('yearlyReport').classList.add('hidden');
+    renderMonthlyReport();
 }
 
-function renderYearlyChart(years, yearData) {
-    const ctx = document.getElementById('yearlyChart');
-    if (!ctx) return;
-    
-    if (yearlyChart) {
-        yearlyChart.destroy();
-    }
-    
-    const sortedYears = [...years].sort((a, b) => a - b);
-    
-    yearlyChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: sortedYears,
-            datasets: [
-                {
-                    label: 'Income',
-                    data: sortedYears.map(y => yearData[y].income),
-                    backgroundColor: 'rgba(16, 185, 129, 0.7)',
-                    borderColor: 'rgb(16, 185, 129)',
-                    borderWidth: 1
-                },
-                {
-                    label: 'Expenses',
-                    data: sortedYears.map(y => yearData[y].expense),
-                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
-                    borderColor: 'rgb(239, 68, 68)',
-                    borderWidth: 1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true
-                }
-            },
-            plugins: {
-                legend: {
-                    position: 'top'
-                }
-            }
-        }
-    });
-}
+window.goToMonth = goToMonth;
 
 function filterByMonth(year, month) {
     // Switch to receipts tab with filter
