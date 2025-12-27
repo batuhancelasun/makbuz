@@ -362,12 +362,15 @@ function renderExpenses() {
     container.innerHTML = recent.map(expense => `
         <div class="expense-item clickable" onclick="showExpenseDetail('${expense.id}')">
             <div class="expense-info">
-                <div class="expense-place">${expense.place || 'Unknown'}</div>
+                <div class="expense-place">
+                    ${expense.isIncome ? '💰 ' : ''}${expense.place || 'Unknown'}
+                    ${expense.isRecurring ? ' 🔄' : ''}
+                </div>
                 <div class="expense-details">
                     ${expense.category} • ${formatDate(expense.date)}${expense.items && expense.items.length > 0 ? ' • ' + expense.items.length + ' items' : ''}
                 </div>
             </div>
-            <div class="expense-amount">${formatCurrency(expense.amount)}</div>
+            <div class="expense-amount ${expense.isIncome ? 'income-amount' : ''}">${expense.isIncome ? '+' : ''}${formatCurrency(expense.amount)}</div>
             <div class="expense-actions" onclick="event.stopPropagation()">
                 <button class="btn-icon" onclick="editExpense('${expense.id}')" title="Edit">✏️</button>
                 <button class="btn-icon" onclick="deleteExpense('${expense.id}')" title="Delete">🗑️</button>
