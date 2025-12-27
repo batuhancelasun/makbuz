@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Expense tracker with receipt scanning">
+    <meta name="theme-color" content="#6366f1">
+    <title>Makbuz - Expense Tracker</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="/styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧾</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧾 Makbuz</h1>
+            <div class="header-actions">
+                <button id="themeToggle" class="icon-btn" aria-label="Toggle theme">🌓</button>
+                <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Dashboard View -->
+            <section id="dashboardView" class="view active">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">This Month</div>
+                        <div class="stat-value" id="monthTotal">€0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Today</div>
+                        <div class="stat-value" id="todayTotal">€0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Total Expenses</div>
+                        <div class="stat-value" id="totalExpenses">€0.00</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+
+                <div class="actions">
+                    <button id="addExpenseBtn" class="btn btn-primary">
+                        <span>➕</span> Add Expense
+                    </button>
+                    <button id="scanReceiptBtn" class="btn btn-secondary">
+                        <span>📷</span> Scan Receipt
+                    </button>
+                </div>
+
+                <div class="recent-expenses">
+                    <h2>Recent Expenses</h2>
+                    <div id="expensesList"></div>
+                </div>
+            </section>
+
+            <!-- Add/Edit Expense Form -->
+            <section id="expenseFormView" class="view">
+                <div class="form-container">
+                    <h2 id="formTitle">Add Expense</h2>
+                    <form id="expenseForm">
+                        <div class="form-group">
+                            <label for="place">Place</label>
+                            <input type="text" id="place" name="place" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="category">Category</label>
+                            <select id="category" name="category" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Amount</label>
+                            <input type="number" id="amount" name="amount" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" name="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="items">Items (comma-separated)</label>
+                            <textarea id="items" name="items" rows="3" placeholder="Item 1, Item 2, Item 3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="notes">Notes</label>
+                            <textarea id="notes" name="notes" rows="2"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" id="cancelBtn" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Receipt Scanner View -->
+            <section id="scannerView" class="view">
+                <div class="scanner-container">
+                    <h2>Scan Receipt</h2>
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="receiptInput" accept="image/*" capture="environment">
+                        <div class="upload-placeholder">
+                            <span class="upload-icon">📷</span>
+                            <p>Click to take a photo or select an image</p>
+                        </div>
+                        <img id="receiptPreview" class="hidden">
+                    </div>
+                    <div id="scanningStatus" class="hidden">
+                        <div class="spinner"></div>
+                        <p>Scanning receipt...</p>
+                    </div>
+                    <div id="scanResults" class="hidden">
+                        <h3>Extracted Information</h3>
+                        <div class="scan-result-item">
+                            <strong>Place:</strong> <span id="scanPlace">-</span>
+                        </div>
+                        <div class="scan-result-item">
+                            <strong>Date:</strong> <span id="scanDate">-</span>
+                        </div>
+                        <div class="scan-result-item">
+                            <strong>Amount:</strong> <span id="scanAmount">-</span>
+                        </div>
+                        <div class="scan-result-item">
+                            <strong>Items:</strong> <span id="scanItems">-</span>
+                        </div>
+                        <div class="form-actions">
+                            <button id="useScanDataBtn" class="btn btn-primary">Use This Data</button>
+                            <button id="rescanBtn" class="btn btn-secondary">Rescan</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings View -->
+            <section id="settingsView" class="view">
+                <div class="settings-container">
+                    <h2>Settings</h2>
+                    <form id="settingsForm">
+                        <div class="form-group">
+                            <label for="geminiApiKey">Gemini API Key</label>
+                            <input type="password" id="geminiApiKey" name="geminiApiKey" placeholder="Enter your Gemini API key">
+                            <small>Get your API key from <a href="https://makersuite.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="currency">Currency Symbol</label>
+                            <input type="text" id="currency" name="currency" maxlength="3">
+                        </div>
+                        <div class="form-group">
+                            <label for="theme">Theme</label>
+                            <select id="theme" name="theme">
+                                <option value="system">System Default</option>
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="startDate">Month Start Date</label>
+                            <input type="number" id="startDate" name="startDate" min="1" max="31" value="1">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save Settings</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="/app.js"></script>
+    <script>
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
+
