@@ -236,9 +236,6 @@ app.post('/api/scan-receipt', upload.single('receipt'), async (req, res) => {
 
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(settings.geminiApiKey);
-    // Use gemini-2.0-flash-exp (experimental) - latest fast model
-    // Note: If gemini-2.5-flash-lite becomes available, update model name
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
     // Convert image to Gemini format
     const imagePart = {
@@ -269,7 +266,31 @@ Rules:
 - If any field cannot be determined, use null
 - Return ONLY valid JSON, no additional text`;
 
-    const result = await model.generateContent([prompt, imagePart]);
+    // Models to try in order: primary -> fallback
+    const models = ['gemini-2.0-flash-exp', 'gemini-1.5-flash'];
+    let result;
+    let usedModel;
+    let lastError;
+
+    for (const modelName of models) {
+      try {
+        console.log(`Trying model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        result = await model.generateContent([prompt, imagePart]);
+        usedModel = modelName;
+        console.log(`Success with model: ${modelName}`);
+        break;
+      } catch (modelError) {
+        console.log(`Model ${modelName} failed: ${modelError.message}`);
+        lastError = modelError;
+        // Continue to next model
+      }
+    }
+
+    if (!result) {
+      throw lastError || new Error('All models failed');
+    }
+
     const response = await result.response;
     const text = response.text();
 
@@ -288,6 +309,9 @@ Rules:
         throw new Error('Could not parse response from Gemini');
       }
     }
+
+    // Add which model was used (for debugging/info)
+    extractedData._model = usedModel;
 
     // Clean up uploaded file
     await fs.unlink(req.file.path);
