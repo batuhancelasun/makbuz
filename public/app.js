@@ -16,6 +16,16 @@ const API_BASE = '/api';
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', async () => {
+    // Register service worker for PWA
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('Service Worker registered:', registration);
+        } catch (error) {
+            console.error('Service Worker registration failed:', error);
+        }
+    }
+    
     await loadSettings();
     await loadCategories();
     await loadExpenses();
